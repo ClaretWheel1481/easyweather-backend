@@ -1,29 +1,27 @@
 package main
 
 import (
+	"EasyWeatherBackend/auth"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
-
-var secretKey = []byte("LanceHuang")
 
 func main() {
 	router := gin.Default()
-	var gaodeKey string = "1c918e3c95e677120dc2a54bf58a408f"
-	var qWeatherKey1 string = "d5ae8d9521c148879fc4268e6fcf624e"
-	var qWeatherKey2 string = "325e370be5254274a7460665d95559b9"
+	// TODO: 请输入你的高德与和风api key
+	var gaodeKey string = "please input a key"
+	var qWeatherKey1 string = "please input a key"
+	var qWeatherKey2 string = "please input a key"
 
 	gin.SetMode(gin.ReleaseMode)
 
 	// 路由组
 	ewRouter := router.Group("/v1/data")
-	ewRouter.Use(AuthMiddleware())
+	ewRouter.Use(auth.AuthMiddleware())
 	{
 		// 查询市、区id
 		ewRouter.GET("/baseCityInfo/:cityName", func(c *gin.Context) {
@@ -76,7 +74,7 @@ func main() {
 	}
 	// 生成令牌的路由
 	router.GET("/generateToken", func(c *gin.Context) {
-		token, err := GenerateToken()
+		token, err := auth.GenerateToken()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 			return
@@ -84,41 +82,6 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"token": token})
 	})
 	router.Run(":37878")
-}
-
-// AuthMiddleware 验证令牌
-func AuthMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-			c.Abort()
-			return
-		}
-
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-			return secretKey, nil
-		})
-
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			c.Abort()
-			return
-		}
-
-		c.Next()
-	}
-}
-
-// GenerateToken 生成新的JWT令牌
-func GenerateToken() (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"exp": time.Now().Add(time.Hour * 24).Unix(),
-	})
-	return token.SignedString(secretKey)
 }
 
 // GetUrlJsonData 获取URL的JSON数据

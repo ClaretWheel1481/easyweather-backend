@@ -1,4 +1,4 @@
-module EW-BACK-END
+module EasyWeatherBackend
 
 go 1.21
 
